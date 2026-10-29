@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vokabeltrainer Unit 1</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --text: #1d2330;
+    --muted: #6b7280;
+    --line: #e2e5ea;
+    --accent: #2f6fde;
+    --accent-soft: #e6eefc;
+    --ok: #1f9d55;
+    --ok-soft: #e3f5ea;
+    --bad: #d64545;
+    --bad-soft: #fbe7e7;
+    --star: #e8a317;
+    --shadow: 0 2px 10px rgba(20, 30, 50, .08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c;
+      --card: #1e232b;
+      --text: #e8eaee;
+      --muted: #9aa3b0;
+      --line: #2e3540;
+      --accent: #6b9cf0;
+      --accent-soft: #24324a;
+      --ok: #4cc27f;
+      --ok-soft: #1c3427;
+      --bad: #ef6b6b;
+      --bad-soft: #3a2224;
+      --star: #f2b73a;
+      --shadow: 0 2px 10px rgba(0, 0, 0, .35);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 720px; margin: 0 auto; padding: 16px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  h1 { font-size: 1.35rem; margin: 0; }
+  h2 { font-size: 1.05rem; margin: 0 0 10px; }
+  .muted { color: var(--muted); }
+  .small { font-size: .875rem; }
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow);
+  }
+  button {
+    font: inherit;
+    cursor: pointer;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--text);
+    padding: 10px 14px;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button.ok { background: var(--ok); border-color: var(--ok); color: #fff; font-weight: 600; }
+  button.bad { background: var(--bad); border-color: var(--bad); color: #fff; font-weight: 600; }
+  button.link { border: none; background: none; color: var(--accent); padding: 6px 8px; }
+  button:disabled { opacity: .45; cursor: default; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .grow { flex: 1; }
+
+  /* Segmented control */
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .seg button { border: none; border-radius: 0; padding: 9px 14px; }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button.active { background: var(--accent); color: #fff; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    padding: 6px 12px; border-radius: 999px; font-size: .9rem;
+  }
+  .chip.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+  /* Progress */
+  .bar { height: 10px; background: var(--line); border-radius: 999px; overflow: hidden; display: flex; }
+  .bar > span { display: block; height: 100%; transition: width .3s; }
+  .bar .ok { background: var(--ok); }
+  .bar .bad { background: var(--bad); }
+  .bar .acc { background: var(--accent); }
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 520px) { .stat-grid { grid-template-columns: 1fr; } }
+  .stat-num { font-size: 1.5rem; font-weight: 700; }
+
+  /* Quiz card */
+  .quiz-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px; }
+  .card { text-align: center; padding: 28px 18px; position: relative; }
+  .card .dir { font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .card .prompt { font-size: 1.7rem; font-weight: 700; margin: 10px 0 4px; word-wrap: break-word; }
+  .card .ipa { color: var(--muted); font-size: .95rem; }
+  .card .answer { font-size: 1.35rem; font-weight: 600; margin-top: 18px; padding-top: 16px; border-top: 1px dashed var(--line); }
+  .card .example { margin-top: 10px; color: var(--muted); font-style: italic; }
+  .card .note { margin-top: 6px; color: var(--muted); font-size: .9rem; }
+  .star-btn {
+    position: absolute; top: 10px; right: 10px;
+    border: none; background: none; font-size: 1.5rem; padding: 4px 8px; color: var(--muted);
+  }
+  .star-btn.on { color: var(--star); }
+  .speak-btn { border: none; background: none; font-size: 1.15rem; padding: 2px 6px; vertical-align: middle; }
+  input[type=text] {
+    font: inherit; width: 100%; padding: 12px 14px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--text); text-align: center;
+  }
+  input[type=text]:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  .feedback { margin-top: 10px; font-weight: 600; }
+  .feedback.ok { color: var(--ok); }
+  .feedback.bad { color: var(--bad); }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .actions button { padding: 14px; font-size: 1.05rem; }
+  .kbd-hint { text-align: center; margin-top: 10px; }
+  kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; font-size: .8rem; }
+
+  /* Word list */
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+  th, td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: .8rem; }
+  td.st { white-space: nowrap; width: 1%; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--line); margin-right: 3px; }
+  .dot.ok { background: var(--ok); }
+  .dot.bad { background: var(--bad); }
+  .dot.part { background: var(--accent); }
+  .tbl-star { border: none; background: none; padding: 0 4px; font-size: 1.1rem; color: var(--muted); }
+  .tbl-star.on { color: var(--star); }
+  .table-wrap { overflow-x: auto; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Vokabeltrainer · Unit 1</h1>
+    <span class="muted small">S. 210–214</span>
+  </header>
+
+  <!-- ================= START ================= -->
+  <section id="view-home">
+    <div class="panel">
+      <h2>Fortschritt</h2>
+      <div class="stat-grid">
+        <div>
+          <div class="muted small">Deutsch → Englisch</div>
+          <div class="stat-num" id="stat-deen">0 / 0</div>
+          <div class="bar"><span class="ok" id="bar-deen-ok"></span><span class="acc" id="bar-deen-part"></span></div>
+        </div>
+        <div>
+          <div class="muted small">Englisch → Deutsch</div>
+          <div class="stat-num" id="stat-ende">0 / 0</div>
+          <div class="bar"><span class="ok" id="bar-ende-ok"></span><span class="acc" id="bar-ende-part"></span></div>
+        </div>
+      </div>
+      <p class="muted small" style="margin:10px 0 0">
+        <span class="dot ok"></span>sicher (2× hintereinander gewusst)
+        &nbsp; <span class="dot part"></span>1× gewusst
+        &nbsp; · Merkliste: <strong id="stat-marked">0</strong> Wörter
+      </p>
+    </div>
+
+    <div class="panel">
+      <h2>Richtung</h2>
+      <div class="seg" id="dir-seg">
+        <button data-dir="deen">Deutsch → Englisch</button>
+        <button data-dir="ende">Englisch → Deutsch</button>
+      </div>
+
+      <h2 style="margin-top:18px">Was abfragen?</h2>
+      <div class="chips" id="pool-chips">
+        <button class="chip" data-pool="all">Alle Wörter</button>
+        <button class="chip" data-pool="marked">Nur Merkliste ★</button>
+        <button class="chip" data-pool="new">Noch nicht sicher</button>
+      </div>
+
+      <h2 style="margin-top:18px">Seiten</h2>
+      <div class="chips" id="page-chips"></div>
+
+      <h2 style="margin-top:18px">Antwort</h2>
+      <div class="seg" id="mode-seg">
+        <button data-mode="card">Karteikarte (selbst prüfen)</button>
+        <button data-mode="type">Eintippen</button>
+      </div>
+
+      <div class="row" style="margin-top:20px">
+        <span class="muted small grow" id="pool-count"></span>
+        <button class="primary" id="btn-start">Los geht's</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <button class="link" id="btn-list">Wortliste &amp; Merkliste ansehen</button>
+      <span class="grow"></span>
+      <button class="link" id="btn-reset">Fortschritt zurücksetzen</button>
+    </div>
+  </section>
+
+  <!-- ================= QUIZ ================= -->
+  <section id="view-quiz" class="hidden">
+    <div class="quiz-top">
+      <button class="link" id="btn-quit">← Beenden</button>
+      <span class="small muted" id="quiz-count"></span>
+    </div>
+    <div class="bar" style="margin-bottom:6px">
+      <span class="ok" id="q-bar-ok"></span><span class="bad" id="q-bar-bad"></span>
+    </div>
+    <div class="row small muted" style="margin-bottom:12px">
+      <span>✔ <strong id="q-ok">0</strong></span>
+      <span>✘ <strong id="q-bad">0</strong></span>
+    </div>
+
+    <div class="panel card">
+      <button class="star-btn" id="q-star" title="Auf Merkliste setzen / entfernen">☆</button>
+      <div class="dir" id="q-dir"></div>
+      <div class="prompt" id="q-prompt"></div>
+      <div class="ipa" id="q-ipa"></div>
+
+      <div id="q-type-wrap" style="margin-top:18px">
+        <input type="text" id="q-input" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Deine Antwort …">
+      </div>
+
+      <div id="q-reveal" class="hidden">
+        <div class="feedback" id="q-feedback"></div>
+        <div class="answer" id="q-answer"></div>
+        <div class="example" id="q-example"></div>
+        <div class="note" id="q-note"></div>
+      </div>
+    </div>
+
+    <div id="q-actions-show">
+      <button class="primary" id="btn-show" style="width:100%;padding:14px;font-size:1.05rem">Lösung zeigen</button>
+    </div>
+    <div class="actions hidden" id="q-actions-rate">
+      <button class="bad" id="btn-wrong">✘ Nicht gewusst</button>
+      <button class="ok" id="btn-right">✔ Gewusst</button>
+    </div>
+    <p class="kbd-hint small muted">
+      <kbd>Enter</kbd> Lösung zeigen · <kbd>←</kbd> nicht gewusst · <kbd>→</kbd> gewusst
+    </p>
+  </section>
+
+  <!-- ================= ERGEBNIS ================= -->
+  <section id="view-result" class="hidden">
+    <div class="panel" style="text-align:center">
+      <h2 id="r-title">Runde geschafft!</h2>
+      <div class="stat-num" id="r-score"></div>
+      <div class="bar" style="margin:12px 0"><span class="ok" id="r-bar-ok"></span><span class="bad" id="r-bar-bad"></span></div>
+      <p class="muted" id="r-text"></p>
+      <div class="row" style="justify-content:center;margin-top:14px">
+        <button class="bad" id="btn-repeat-wrong">Falsche nochmal üben</button>
+        <button class="primary" id="btn-home">Zur Startseite</button>
+      </div>
+    </div>
+    <div class="panel" id="r-wrong-panel">
+      <h2>Nicht gewusst</h2>
+      <div class="table-wrap"><table id="r-wrong-table"></table></div>
+    </div>
+  </section>
+
+  <!-- ================= WORTLISTE ================= -->
+  <section id="view-list" class="hidden">
+    <div class="row" style="margin-bottom:10px">
+      <button class="link" id="btn-list-back">← Zurück</button>
+      <span class="grow"></span>
+      <div class="chips">
+        <button class="chip active" data-filter="all">Alle</button>
+        <button class="chip" data-filter="marked">★ Merkliste</button>
+      </div>
+    </div>
+    <div class="panel">
+      <p class="muted small" style="margin-top:0">Status: links Deutsch → Englisch, rechts Englisch → Deutsch. ★ antippen, um ein Wort zu merken oder von der Merkliste zu nehmen.</p>
+      <div class="table-wrap"><table id="list-table"></table></div>
+    </div>
+  </section>
+</main>
+
+<script>
+// ---------------------------------------------------------------------------
+// Vokabeln (Unit 1, S. 210–214)
+// en/de: Mehrere richtige Antworten mit ";" oder "," trennen.
+// ---------------------------------------------------------------------------
+const VOCAB = [
+  // S. 210
+  { p: 210, en: "advertisement; ad; advert", ipa: "[əd'vɜːtɪsmənt], [æd], ['ædvɜːt]", de: "die Anzeige, das Inserat; der Werbespot", ex: "I need a new job. I'll look at job advertisements on the internet." },
+  { p: 210, en: "(to) advertise sth.", de: "Werbung machen für etwas; etwas inserieren", ex: "Most companies advertise on the internet." },
+  { p: 210, en: "bio", note: "Kurzform von: biography", de: "die Biografie" },
+  { p: 210, en: "fave", note: "Kurzform von: favourite", de: "der Liebling; Lieblings-" },
+  { p: 210, en: "intro", note: "Kurzform von: introduction", de: "die Einführung, die Einleitung" },
+  { p: 210, en: "mag", note: "Kurzform von: magazine", de: "die Zeitschrift" },
+  { p: 210, en: "photo", note: "Kurzform von: photograph", de: "das Foto, die Fotografie" },
+  { p: 210, en: "pro", note: "Kurzform von: professional", de: "der Fachmann, die Fachfrau, der Profi" },
+  { p: 210, en: "sci-fi", note: "Kurzform von: science fiction", de: "die Science-Fiction" },
+  { p: 210, en: "tech", note: "Kurzform von: technology", de: "die Technik, die Technologie" },
+  { p: 210, en: "veg", ipa: "[vedʒ]", note: "Kurzform von: vegetable(s), pl veg", de: "das Gemüse" },
+  { p: 210, en: "veggie", note: "Kurzform von: vegetarian", de: "der Vegetarier, die Vegetarierin" },
+  { p: 210, en: "vocab", note: "Kurzform von: vocabulary", de: "der Wortschatz, das Vokabular; das Vokabelverzeichnis" },
+  { p: 210, en: "(potato) chips (AE); (potato) crisps (BE)", ipa: "[tʃɪps], [krɪsps]", de: "die (Kartoffel-)Chips", note: "Nicht verwechseln: BE crisps / AE chips" },
+  { p: 210, en: "chips (BE); French fries (AE)", de: "die Pommes frites", note: "Nicht verwechseln: BE chips / AE French fries" },
+  { p: 210, en: "etc.", ipa: "[et'setərə]", de: "usw. (und so weiter)", ex: "fruit like apples, bananas, oranges etc." },
+  { p: 210, en: "(to) transfer", ipa: "[træns'fɜː]", de: "umsteigen (z.B. Zug)", ex: "Transfer to line A here." },
+  { p: 210, en: "transfer", ipa: "['trænsfɜː]", note: "Nomen", de: "der Umstieg; die Umsteigefahrkarte", ex: "Transfer is quick – the way to the other platform is short." },
+  { p: 210, en: "exit", ipa: "['eksɪt]", note: "Nomen", de: "der Ausgang; die Ausfahrt", ex: "Where are the fire exits?" },
+  { p: 210, en: "fire exit", de: "der Notausgang" },
+  { p: 210, en: "(to) exit", note: "Verb", de: "aussteigen; hinausgehen, (einen Ort) verlassen", ex: "Where can we exit this hall?" },
+
+  // S. 211
+  { p: 211, en: "restroom (AE)", ipa: "['restruːm]", de: "die Toilette (in öffentlichen Gebäuden)", note: "In privaten Häusern/Wohnungen heißt es bathroom." },
+  { p: 211, en: "section", ipa: "['sekʃn]", de: "der Abschnitt, das (Teil-)Stück, der Teil", ex: "This section of the road is only for bikes." },
+  { p: 211, en: "informal", ipa: "[ɪn'fɔːml]", de: "umgangssprachlich" },
+  { p: 211, en: "formal", ipa: "['fɔːml]", de: "förmlich, formell" },
+  { p: 211, en: "welfare", ipa: "['welfeə]", de: "die Sozialhilfe; die Wohlfahrt, die Fürsorge; das Wohl(ergehen)", ex: "He doesn't have a job and lives on welfare." },
+  { p: 211, en: "stamp", ipa: "[stæmp]", de: "die Marke; die Briefmarke" },
+  { p: 211, en: "college", ipa: "['kɒlɪdʒ]", de: "die Hochschule", ex: "When I finish school, I want to go to college and study art." },
+  { p: 211, en: "ponytail", ipa: "['pəʊniteɪl]", de: "der Pferdeschwanz (Frisur)", ex: "She has her hair in a ponytail." },
+  { p: 211, en: "(to) go on (about sb./sth.)", de: "die ganze Zeit reden (über jn./etwas)", ex: "He went on and on about how great his idea was." },
+  { p: 211, en: "hardly", ipa: "['hɑːdli]", de: "kaum", ex: "It's so dark in here, I can hardly see you.", note: "hard = hart, schwer · They hardly work. (kaum)" },
+  { p: 211, en: "giveaway (infml)", ipa: "['gɪvəweɪ]", de: "das (Werbe-)Geschenk; die Lebensmitteltafel, die Kleiderkammer", ex: "This pen was a giveaway from a bank." },
+  { p: 211, en: "stuff (infml)", ipa: "[stʌf]", de: "das Zeug, der Kram; die Sachen", ex: "I have so much stuff! I need to take some of these things to a charity shop." },
+
+  // S. 212
+  { p: 212, en: "(to) hold", ipa: "[həʊld], held, held [held]", de: "halten", ex: "Can you hold my bag for a minute, please?" },
+  { p: 212, en: "(to) hold sb. over", de: "jn. über Wasser halten" },
+  { p: 212, en: "downtown (AE)", ipa: "[daʊn'taʊn]", de: "im/ins Stadtzentrum", note: "BE: (in or into) the town/city centre" },
+  { p: 212, en: "folks (infml)", ipa: "[fəʊks]", de: "die Leute", note: "= people" },
+  { p: 212, en: "dignity", ipa: "['dɪgnəti]", de: "die Würde", ex: "We should treat the traditions of other cultures with dignity and respect." },
+  { p: 212, en: "quicksand", ipa: "['kwɪksænd]", de: "der Treibsand", ex: "Quicksand is dangerous. You sink into it if you try to walk on it." },
+  { p: 212, en: "the harder ..., the more ...", de: "je härter/schwieriger ..., desto mehr ...", ex: "The harder you work, the more money you can make in this company." },
+  { p: 212, en: "(to) kiss", ipa: "[kɪs]", de: "(sich) küssen", note: "Nomen: kiss (der Kuss)" },
+  { p: 212, en: "cheek", ipa: "[tʃiːk]", de: "die Wange" },
+  { p: 212, en: "(to) wipe", ipa: "[waɪp]", de: "(ab)wischen", ex: "wiping the table" },
+  { p: 212, en: "lipstick", ipa: "['lɪpstɪk]", de: "der Lippenstift" },
+  { p: 212, en: "lip", de: "die Lippe" },
+  { p: 212, en: "parking lot (AE); car park (BE)", ipa: "['pɑːkɪŋ lɒt]", de: "der Parkplatz" },
+  { p: 212, en: "(to) park (a car)", de: "(ein Auto) parken" },
+  { p: 212, en: "parking space", de: "die Parklücke, der Parkplatz" },
+  { p: 212, en: "(to) chew", ipa: "[tʃuː]", de: "kauen" },
+  { p: 212, en: "(to) chew on sth.", de: "an etwas kauen, auf etwas (herum)kauen" },
+  { p: 212, en: "chewing gum", ipa: "['tʃuːɪŋ gʌm]", de: "der Kaugummi, das Kaugummi" },
+  { p: 212, en: "like; as if", de: "als ob, als wenn" },
+  { p: 212, en: "otherwise", ipa: "['ʌðəwaɪz]", de: "anderenfalls, sonst", ex: "We have to hurry, otherwise we'll miss the train!" },
+
+  // S. 213
+  { p: 213, en: "elderly", ipa: "['eldəli]", de: "ältere(r, s)", note: "a more polite word for \"old\"" },
+  { p: 213, en: "the elderly", de: "die Älteren, ältere Menschen" },
+  { p: 213, en: "coat", ipa: "[kəʊt]", de: "der Mantel; die Jacke" },
+  { p: 213, en: "(to) belong", ipa: "[bɪ'lɒŋ]", de: "(hin)gehören", ex: "This book belongs on that shelf." },
+  { p: 213, en: "gymnasium; gym", ipa: "[dʒɪm'neɪziəm], [dʒɪm]", de: "die Turnhalle, die Sporthalle; das Fitnessstudio", note: "Vorsicht – gymnasium heißt nicht „Gymnasium“." },
+  { p: 213, en: "hoop", ipa: "[huːp]", de: "der Korb (Basketball)" },
+  { p: 213, en: "Santa Claus; Santa", ipa: "['sæntə klɔːz]", de: "der Weihnachtsmann", note: "BE auch: Father Christmas" },
+  { p: 213, en: "can", ipa: "[kæn]", de: "die Dose", note: "BE: can für Getränke, tin für Essen" },
+  { p: 213, en: "canned fruit", de: "Obst in Dosen" },
+  { p: 213, en: "(to) match", ipa: "[mætʃ]", note: "Verb", de: "zusammenpassen; passen zu; (passend) zusammenfügen; zuordnen", ex: "These shoes don't match." },
+  { p: 213, en: "match", note: "Nomen", de: "das Gegenstück, das (zusammenpassende) Paar", ex: "I think Philip and Laura are a really good match." },
+  { p: 213, en: "dear", ipa: "[dɪə]", de: "der Liebling, der Schatz; Liebe/r", note: "auch als Anrede in Briefen/E-Mails" },
+
+  // S. 214
+  { p: 214, en: "pity (for)", ipa: "['pɪti]", de: "das Mitleid (mit)", ex: "I don't want people's pity." },
+  { p: 214, en: "That's a pity.", de: "Das ist schade." },
+  { p: 214, en: "self-pity", de: "das Selbstmitleid" },
+  { p: 214, en: "(to) pity sb.", de: "jn. bemitleiden", ex: "I don't want people to pity me." },
+  { p: 214, en: "(to) beg", ipa: "[beg]", de: "flehen, (eindringlich) bitten; betteln" },
+  { p: 214, en: "(to) beg sb. to do sth.", de: "jn. anflehen, etwas zu tun" },
+  { p: 214, en: "(to) beg for sth. (from sb.)", de: "(bei jm.) um etwas betteln" },
+  { p: 214, en: "fridge", ipa: "[frɪdʒ]", de: "der Kühlschrank", ex: "There are two apples and two bottles of milk in the fridge." },
+  { p: 214, en: "(to) fill (up)", ipa: "[fɪl]", de: "sich füllen; (auf)füllen", ex: "the fridge fills back up" },
+  { p: 214, en: "(to) fix sth. (infml)", ipa: "[fɪks]", de: "etwas in Ordnung bringen; reparieren", ex: "Your bike is broken? Maybe we can fix it." },
+  { p: 214, en: "sympathetic", ipa: "[sɪmpə'θetɪk]", de: "mitfühlend; verständnisvoll", ex: "I hate to feel people's pity and their sympathetic looks." },
+  { p: 214, en: "(to) ignore", ipa: "[ɪg'nɔː]", de: "nicht beachten, ignorieren", ex: "I try to ignore people's sympathetic looks." },
+  { p: 214, en: "earbuds", ipa: "['ɪəbʌdz]", de: "der Ohrhörer, der In-Ear-Kopfhörer" },
+  { p: 214, en: "(to) unplug sth.", ipa: "[ʌn'plʌg]", de: "den Stecker von etwas herausziehen, etwas ausstöpseln" },
+  { p: 214, en: "plug", de: "der Stecker" },
+  { p: 214, en: "(to) plug sth. in", de: "etwas einstecken, anschließen" },
+  { p: 214, en: "(to) swallow", ipa: "['swɒləʊ]", de: "(ver)schlucken", ex: "Chew your food well before you swallow it." },
+  { p: 214, en: "that bad; this good", de: "so schlecht; so gut", ex: "I know they have problems, but is their situation really that bad?" },
+  { p: 214, en: "for real", de: "echt, wirklich", ex: "I saw a UFO in the sky. – For real?" },
+];
+VOCAB.forEach(v => { v.id = v.p + ":" + v.en + (v.note && /^(Nomen|Verb)$/.test(v.note) ? ":" + v.note : ""); });
+
+const PAGES = [...new Set(VOCAB.map(v => v.p))];
+const DIR_LABEL = { deen: "Deutsch → Englisch", ende: "Englisch → Deutsch" };
+
+// ---------------------------------------------------------------------------
+// Speicher (localStorage)
+// ---------------------------------------------------------------------------
+const STORE_KEY = "vokabeltrainer-unit1";
+const defaultState = () => ({
+  dir: "deen", pool: "all", mode: "card", pages: [...PAGES],
+  stats: {},   // id -> { deen: {streak, ok, bad}, ende: {...} }
+  marked: [],  // ids
+});
+let state = load();
+
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem(STORE_KEY));
+    if (s && s.stats) return Object.assign(defaultState(), s);
+  } catch (e) { /* ignorieren */ }
+  return defaultState();
+}
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* ignorieren */ }
+}
+
+function stat(id, dir) {
+  const s = state.stats[id] || (state.stats[id] = {});
+  return s[dir] || (s[dir] = { streak: 0, ok: 0, bad: 0 });
+}
+const isMarked = id => state.marked.includes(id);
+function setMarked(id, on) {
+  const has = isMarked(id);
+  if (on && !has) state.marked.push(id);
+  if (!on && has) state.marked = state.marked.filter(x => x !== id);
+  save();
+}
+
+// ---------------------------------------------------------------------------
+// Antwortprüfung beim Eintippen (tolerant)
+// ---------------------------------------------------------------------------
+function normalize(s) {
+  return s.toLowerCase()
+    .replace(/[„“"'’!?.]/g, "")
+    .replace(/\b(der|die|das|ein|eine|to|sth|sb|jn|jm|etwas)\b/g, " ")
+    .replace(/\((ae|be|infml|pl)\)/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+function variants(answer) {
+  const out = new Set();
+  answer.split(/[;,]/).forEach(part => {
+    part = part.trim();
+    if (!part) return;
+    out.add(normalize(part.replace(/[()]/g, "")));          // Klammerinhalt behalten
+    out.add(normalize(part.replace(/\([^)]*\)/g, "")));      // Klammerinhalt weglassen
+    part.split("/").forEach(x => out.add(normalize(x.replace(/\([^)]*\)/g, ""))));
+  });
+  out.add(normalize(answer.replace(/[()]/g, "")));
+  out.delete("");
+  return out;
+}
+function checkTyped(typed, answer) {
+  const t = normalize(typed);
+  if (!t) return false;
+  return variants(answer).has(t);
+}
+
+// ---------------------------------------------------------------------------
+// Ansichten
+// ---------------------------------------------------------------------------
+const $ = id => document.getElementById(id);
+function show(view) {
+  ["home", "quiz", "result", "list"].forEach(v => $("view-" + v).classList.toggle("hidden", v !== view));
+  window.scrollTo(0, 0);
+}
+
+function poolWords() {
+  return VOCAB.filter(v => state.pages.includes(v.p)).filter(v => {
+    if (state.pool === "marked") return isMarked(v.id);
+    if (state.pool === "new") return stat(v.id, state.dir).streak < 2;
+    return true;
+  });
+}
+
+function setBar(okEl, otherEl, okFrac, otherFrac) {
+  $(okEl).style.width = (okFrac * 100) + "%";
+  $(otherEl).style.width = (otherFrac * 100) + "%";
+}
+
+function renderHome() {
+  const total = VOCAB.length;
+  ["deen", "ende"].forEach(d => {
+    let sure = 0, part = 0;
+    VOCAB.forEach(v => {
+      const s = stat(v.id, d);
+      if (s.streak >= 2) sure++; else if (s.streak === 1) part++;
+    });
+    $("stat-" + d).textContent = `${sure} / ${total} sicher`;
+    setBar(`bar-${d}-ok`, `bar-${d}-part`, sure / total, part / total);
+  });
+  $("stat-marked").textContent = state.marked.length;
+
+  document.querySelectorAll("#dir-seg button").forEach(b => b.classList.toggle("active", b.dataset.dir === state.dir));
+  document.querySelectorAll("#mode-seg button").forEach(b => b.classList.toggle("active", b.dataset.mode === state.mode));
+  document.querySelectorAll("#pool-chips button").forEach(b => b.classList.toggle("active", b.dataset.pool === state.pool));
+
+  const pc = $("page-chips");
+  pc.innerHTML = "";
+  PAGES.forEach(p => {
+    const b = document.createElement("button");
+    b.className = "chip" + (state.pages.includes(p) ? " active" : "");
+    b.textContent = "S. " + p;
+    b.onclick = () => {
+      if (state.pages.includes(p)) state.pages = state.pages.filter(x => x !== p);
+      else state.pages.push(p);
+      save(); renderHome();
+    };
+    pc.appendChild(b);
+  });
+
+  const n = poolWords().length;
+  $("pool-count").textContent = n === 0
+    ? (state.pool === "marked" ? "Merkliste ist (für diese Seiten) leer." : "Keine Wörter ausgewählt.")
+    : `${n} Wörter in dieser Runde`;
+  $("btn-start").disabled = n === 0;
+}
+
+$("dir-seg").onclick = e => { if (e.target.dataset.dir) { state.dir = e.target.dataset.dir; save(); renderHome(); } };
+$("mode-seg").onclick = e => { if (e.target.dataset.mode) { state.mode = e.target.dataset.mode; save(); renderHome(); } };
+$("pool-chips").onclick = e => { if (e.target.dataset.pool) { state.pool = e.target.dataset.pool; save(); renderHome(); } };
+
+$("btn-reset").onclick = () => {
+  if (!confirm("Wirklich den gesamten Fortschritt und die Merkliste löschen?")) return;
+  state.stats = {}; state.marked = []; save(); renderHome();
+};
+
+// ---------------------------------------------------------------------------
+// Abfrage
+// ---------------------------------------------------------------------------
+let quiz = null;
+
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function startQuiz(words) {
+  quiz = { words: shuffle([...words]), i: 0, ok: 0, bad: 0, wrong: [], revealed: false };
+  show("quiz");
+  renderCard();
+}
+
+$("btn-start").onclick = () => startQuiz(poolWords());
+$("btn-quit").onclick = () => { quiz = null; show("home"); renderHome(); };
+
+function current() { return quiz.words[quiz.i]; }
+
+function renderCard() {
+  const v = current();
+  const deen = state.dir === "deen";
+  const n = quiz.words.length;
+  $("quiz-count").textContent = `Wort ${quiz.i + 1} von ${n}`;
+  $("q-ok").textContent = quiz.ok;
+  $("q-bad").textContent = quiz.bad;
+  setBar("q-bar-ok", "q-bar-bad", quiz.ok / n, quiz.bad / n);
+
+  $("q-dir").textContent = DIR_LABEL[state.dir] + " · S. " + v.p;
+  $("q-prompt").innerHTML = "";
+  $("q-prompt").append(deen ? v.de : v.en);
+  if (!deen) $("q-prompt").append(speakButton(v.en));
+  $("q-ipa").textContent = !deen && v.ipa ? v.ipa : "";
+  // Hinweis "Nomen/Verb" auch vor dem Aufdecken zeigen, damit die Abfrage eindeutig ist
+  if (v.note && /^(Nomen|Verb)$/.test(v.note)) $("q-ipa").textContent += (deen ? "" : " ") + "(" + v.note + ")";
+
+  updateStar();
+  quiz.revealed = false;
+  $("q-reveal").classList.add("hidden");
+  $("q-actions-show").classList.remove("hidden");
+  $("q-actions-rate").classList.add("hidden");
+  $("q-type-wrap").classList.toggle("hidden", state.mode !== "type");
+  $("q-input").value = "";
+  $("q-input").disabled = false;
+  if (state.mode === "type") $("q-input").focus();
+}
+
+function speakButton(text) {
+  const b = document.createElement("button");
+  b.className = "speak-btn";
+  b.title = "Vorlesen";
+  b.textContent = "🔊";
+  b.onclick = e => { e.stopPropagation(); speak(text); };
+  if (!("speechSynthesis" in window)) b.classList.add("hidden");
+  return b;
+}
+function speak(text) {
+  if (!("speechSynthesis" in window)) return;
+  const clean = text.replace(/\((AE|BE|infml|to|pl)\)/g, "").replace(/\bsth\./g, "something").replace(/\bsb\./g, "somebody").replace(/;/g, ",");
+  const u = new SpeechSynthesisUtterance(clean);
+  u.lang = "en-GB";
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+}
+
+function updateStar() {
+  const on = isMarked(current().id);
+  $("q-star").textContent = on ? "★" : "☆";
+  $("q-star").classList.toggle("on", on);
+}
+$("q-star").onclick = () => { const v = current(); setMarked(v.id, !isMarked(v.id)); updateStar(); };
+
+function reveal() {
+  if (quiz.revealed) return;
+  quiz.revealed = true;
+  const v = current();
+  const deen = state.dir === "deen";
+  const answer = deen ? v.en : v.de;
+
+  $("q-answer").innerHTML = "";
+  $("q-answer").append(answer);
+  if (deen) {
+    $("q-answer").append(speakButton(v.en));
+    if (v.ipa) {
+      const ipa = document.createElement("div");
+      ipa.className = "ipa";
+      ipa.textContent = v.ipa;
+      $("q-answer").append(ipa);
+    }
+  }
+  $("q-example").textContent = v.ex || "";
+  $("q-note").textContent = v.note && !/^(Nomen|Verb)$/.test(v.note) ? v.note : "";
+
+  const fb = $("q-feedback");
+  fb.textContent = ""; fb.className = "feedback";
+  if (state.mode === "type") {
+    $("q-input").disabled = true;
+    const typed = $("q-input").value;
+    if (!typed.trim()) { fb.textContent = "Keine Antwort eingegeben"; fb.classList.add("bad"); }
+    else if (checkTyped(typed, answer)) { fb.textContent = "✔ Richtig!"; fb.classList.add("ok"); }
+    else { fb.textContent = "✘ Deine Antwort: " + typed; fb.classList.add("bad"); }
+  }
+
+  $("q-reveal").classList.remove("hidden");
+  $("q-actions-show").classList.add("hidden");
+  $("q-actions-rate").classList.remove("hidden");
+  // Fokus vom Eingabefeld nehmen, damit Pfeiltasten funktionieren
+  $("q-input").blur();
+  $("btn-right").focus();
+}
+$("btn-show").onclick = reveal;
+$("q-input").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); reveal(); } });
+
+function rate(knew) {
+  if (!quiz.revealed) return;
+  const v = current();
+  const s = stat(v.id, state.dir);
+  if (knew) {
+    quiz.ok++; s.ok++; s.streak++;
+    // Ein Wort verlässt die Merkliste, wenn es 2× hintereinander gewusst wurde
+    if (s.streak >= 2) setMarked(v.id, false);
+  } else {
+    quiz.bad++; s.bad++; s.streak = 0;
+    quiz.wrong.push(v);
+    setMarked(v.id, true);
+  }
+  save();
+  quiz.i++;
+  if (quiz.i >= quiz.words.length) showResult();
+  else renderCard();
+}
+$("btn-right").onclick = () => rate(true);
+$("btn-wrong").onclick = () => rate(false);
+
+document.addEventListener("keydown", e => {
+  if ($("view-quiz").classList.contains("hidden") || !quiz) return;
+  if (document.activeElement === $("q-input") && !quiz.revealed) return;
+  if (!quiz.revealed && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); reveal(); }
+  else if (quiz.revealed && (e.key === "ArrowRight" || e.key === "j")) { e.preventDefault(); rate(true); }
+  else if (quiz.revealed && (e.key === "ArrowLeft" || e.key === "n")) { e.preventDefault(); rate(false); }
+  else if (quiz.revealed && e.key === "Enter") { e.preventDefault(); }
+});
+
+// ---------------------------------------------------------------------------
+// Ergebnis
+// ---------------------------------------------------------------------------
+function showResult() {
+  const n = quiz.words.length;
+  const pct = Math.round(quiz.ok / n * 100);
+  $("r-score").textContent = `${quiz.ok} / ${n} richtig (${pct} %)`;
+  setBar("r-bar-ok", "r-bar-bad", quiz.ok / n, quiz.bad / n);
+  $("r-title").textContent = pct === 100 ? "Perfekt! 🎉" : pct >= 80 ? "Sehr gut!" : pct >= 50 ? "Gut gemacht!" : "Dranbleiben!";
+  $("r-text").textContent = quiz.bad
+    ? `${quiz.bad} Wörter stehen jetzt auf deiner Merkliste.`
+    : "Alles gewusst – nichts Neues auf der Merkliste.";
+  $("btn-repeat-wrong").classList.toggle("hidden", quiz.bad === 0);
+  $("r-wrong-panel").classList.toggle("hidden", quiz.bad === 0);
+
+  const t = $("r-wrong-table");
+  t.innerHTML = "<tr><th>Englisch</th><th>Deutsch</th></tr>";
+  quiz.wrong.forEach(v => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = "<td></td><td></td>";
+    tr.children[0].textContent = v.en;
+    tr.children[1].textContent = v.de;
+    t.appendChild(tr);
+  });
+  show("result");
+}
+$("btn-repeat-wrong").onclick = () => startQuiz(quiz.wrong);
+$("btn-home").onclick = () => { quiz = null; show("home"); renderHome(); };
+
+// ---------------------------------------------------------------------------
+// Wortliste
+// ---------------------------------------------------------------------------
+let listFilter = "all";
+function dot(s) {
+  const cls = s.streak >= 2 ? "ok" : s.streak === 1 ? "part" : (s.bad > 0 ? "bad" : "");
+  return `<span class="dot ${cls}"></span>`;
+}
+function renderList() {
+  document.querySelectorAll("#view-list .chips button").forEach(b => b.classList.toggle("active", b.dataset.filter === listFilter));
+  const t = $("list-table");
+  t.innerHTML = "<tr><th></th><th>Englisch</th><th>Deutsch</th><th>Status</th></tr>";
+  const words = VOCAB.filter(v => listFilter === "all" || isMarked(v.id));
+  if (!words.length) {
+    t.innerHTML += '<tr><td colspan="4" class="muted">Die Merkliste ist leer.</td></tr>';
+    return;
+  }
+  words.forEach(v => {
+    const tr = document.createElement("tr");
+    const on = isMarked(v.id);
+    tr.innerHTML = `<td class="st"><button class="tbl-star ${on ? "on" : ""}" title="Merken">${on ? "★" : "☆"}</button></td>
+      <td></td><td></td><td class="st">${dot(stat(v.id, "deen"))}${dot(stat(v.id, "ende"))}</td>`;
+    tr.children[1].textContent = v.en;
+    tr.children[2].textContent = v.de;
+    tr.querySelector("button").onclick = () => { setMarked(v.id, !isMarked(v.id)); renderList(); };
+    t.appendChild(tr);
+  });
+}
+$("btn-list").onclick = () => { show("list"); renderList(); };
+$("btn-list-back").onclick = () => { show("home"); renderHome(); };
+document.querySelector("#view-list .chips").onclick = e => {
+  if (e.target.dataset.filter) { listFilter = e.target.dataset.filter; renderList(); }
+};
+
+renderHome();
+</script>
+</body>
+</html>
